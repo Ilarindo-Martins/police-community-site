@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>Police Community Simulator – Maplewood</title>
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+  <script type="module" crossorigin src="./assets/index-C10yPnxh.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/preload-helper-Ct5FWWRu.js">
+  <link rel="modulepreload" crossorigin href="./assets/index-DY84Q-h9.js">
+  <link rel="stylesheet" crossorigin href="./assets/index-W_k1b5Pk.css">
+</head>
+<body>
+<canvas id="app-canvas"></canvas>
+<div id="labels"></div>
+<div id="fade"></div>
+<!-- First-person cutscene (issue #104; systems/cutscene.js): cinema bars, the speaker's name and the typed line. -->
+<div id="cutscene" class="hidden">
+    <div class="cs-bar cs-top">
+        <div class="cs-controls">
+            <button id="cs-next" class="btn"><span data-i18n="cutscenes.next"></span> <kbd data-i18n="cutscenes.nextKey"></kbd></button>
+            <button id="cs-perf" class="btn" data-i18n-aria="perf.button"><kbd>P</kbd></button>
+            <button id="cs-sound" class="btn sound-btn"><span class="sound-icon"></span></button>
+            <button id="cs-skip" class="btn"><span data-i18n="cutscenes.skip"></span> <kbd data-i18n="cutscenes.skipKey"></kbd></button>
+        </div>
+    </div>
+    <div class="cs-bar cs-bottom">
+        <div class="cs-sub">
+            <div id="cs-name"></div>
+            <p id="cs-text"></p>
+        </div>
+    </div>
+</div>
+
+<div id="hud">
+    <div id="status" class="panel">
+        <div class="rank"><span id="rank-icon">🛡️</span><div><div id="rank-name"></div><div id="xp-text">0 XP</div></div></div>
+        <div class="xp-bar"><div id="xp-fill"></div></div>
+        <div id="location">—</div>
+    </div>
+
+    <div id="objective" class="panel hidden">
+        <div class="obj-title" id="obj-title"></div>
+        <div class="obj-text" id="obj-text"></div>
+        <div class="obj-distance" id="obj-distance"></div>
+        <ul id="obj-clues"></ul>
+        <button id="btn-report" class="btn primary" data-i18n="hud.report"></button>
+    </div>
+
+    <canvas id="minimap" width="180" height="180"></canvas>
+    <div id="compass" aria-hidden="true"><span data-i18n="hud.compass.n"></span><span data-i18n="hud.compass.e"></span><span data-i18n="hud.compass.s"></span><span data-i18n="hud.compass.w"></span></div>
+
+    <div id="shift" class="panel">
+        <div class="shift-state"><span class="shift-led"></span><span id="shift-label" data-i18n="shift.offDuty"></span></div>
+        <div id="shift-time" class="hidden"></div>
+        <button id="shift-btn" class="btn primary"><span id="shift-btn-text" data-i18n="shift.start"></span> <kbd data-i18n="shift.key"></kbd></button>
+    </div>
+
+    <div id="radio" class="hidden">
+        <div class="radio-head">
+            <span class="radio-icon">📻</span>
+            <span class="radio-title" data-i18n="radio.title"></span>
+            <span class="radio-channel"><span class="led"></span> <span data-i18n="radio.channel"></span></span>
+        </div>
+        <div class="radio-body">
+            <div class="radio-dispatcher">
+                <img id="radio-dispatcher-img" data-i18n-alt="radio.dispatcherAlt">
+                <div class="radio-badge">
+                    <div class="badge-role" data-i18n="radio.badgeRole"></div>
+                    <div class="badge-name" id="radio-dispatcher-name"></div>
+                    <div class="badge-id" id="radio-dispatcher-id"></div>
+                </div>
+            </div>
+            <div class="radio-details">
+                <div class="details-head" data-i18n="radio.detailsTitle"></div>
+                <div class="details-grid">
+                    <div class="field small"><label data-i18n="radio.fieldNumber"></label><div class="value" id="radio-id"></div></div>
+                    <div class="field small"><label data-i18n="radio.fieldTime"></label><div class="value" id="radio-time"></div></div>
+                    <div class="field small"><label data-i18n="radio.fieldPriority"></label><div class="priority" id="radio-priority"></div></div>
+                    <div class="field wide"><label data-i18n="radio.fieldIncident"></label><div class="value" id="radio-title"></div></div>
+                    <div class="field wide"><label data-i18n="radio.fieldLocation"></label><div class="value" id="radio-loc"></div></div>
+                    <div class="field wide" id="radio-caller-row"><label data-i18n="radio.fieldCaller"></label><div class="value" id="radio-caller"></div></div>
+                    <div class="field wide"><label data-i18n="radio.fieldMessage"></label><p class="message" id="radio-text"></p></div>
+                    <div class="field wide"><label data-i18n="radio.fieldObjective"></label><div class="objective" id="radio-obj"></div></div>
+                </div>
+                <div class="radio-actions">
+                    <button id="radio-accept" class="btn"><span data-i18n="radio.accept"></span> <kbd data-i18n="radio.acceptKey"></kbd></button>
+                    <button id="radio-ignore" class="btn"><span data-i18n="radio.ignore"></span> <kbd data-i18n="radio.ignoreKey"></kbd></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="honor" class="hidden">
+        <div class="honor-card">
+            <div class="radio-head">
+                <span class="radio-icon">🎖️</span>
+                <span class="radio-title" data-i18n="honor.title"></span>
+                <span class="radio-channel" data-i18n="honor.channel"></span>
+            </div>
+            <div class="honor-hero">
+                <img id="honor-chief" data-i18n-alt="honor.chiefAlt">
+                <div class="honor-shine"></div>
+            </div>
+            <div class="honor-body">
+                <div class="honor-badge">
+                    <div class="honor-badge-clip"></div>
+                    <div class="honor-badge-card">
+                        <div class="honor-icon" id="honor-icon"></div>
+                        <div class="honor-kind" id="honor-kind"></div>
+                    </div>
+                </div>
+                <div class="honor-panel">
+                    <div class="details-head" data-i18n="honor.panelTitle"></div>
+                    <div class="honor-content">
+                        <div class="honor-heading" data-i18n="honor.heading"></div>
+                        <div class="honor-line" id="honor-line"></div>
+                        <div class="honor-change" id="honor-change"></div>
+                        <p class="honor-speech" id="honor-speech"></p>
+                        <div class="honor-sign">
+                            <div class="honor-sign-name" data-i18n="honor.signatureName"></div>
+                            <div class="honor-sign-role" data-i18n="honor.signatureRole"></div>
+                        </div>
+                        <div class="honor-xp" id="honor-xp"></div>
+                    </div>
+                    <div class="radio-actions">
+                        <button id="honor-continue" class="btn"><span data-i18n="honor.continue"></span> <kbd data-i18n="honor.continueKey"></kbd></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="badge" class="hidden">
+        <div class="badge-strap"></div>
+        <div class="badge-card">
+            <div class="badge-clip"></div>
+            <div class="badge-head">
+                <span class="badge-logo">🌿</span>
+                <span class="badge-org" id="badge-org"></span>
+            </div>
+            <div class="badge-photo" id="badge-photo"></div>
+            <div class="badge-name" id="badge-name"></div>
+            <div class="badge-role" id="badge-role"></div>
+            <div class="badge-id" id="badge-id"></div>
+            <div class="badge-desc" id="badge-desc"></div>
+            <div class="badge-foot" id="badge-foot"></div>
+            <button id="badge-close" class="btn"><span data-i18n="badge.close"></span> <kbd data-i18n="badge.closeKey"></kbd></button>
+        </div>
+    </div>
+
+    <div id="interiors-menu" class="hidden">
+        <div class="im-card">
+            <div class="im-head"><span data-i18n="interiorsMenu.title"></span> <kbd>I</kbd><button id="im-close" class="im-close" data-i18n="interiorsMenu.close"></button></div>
+            <p class="im-hint" data-i18n="interiorsMenu.hint"></p>
+            <div id="im-list"></div>
+        </div>
+    </div>
+
+    <div id="missions-menu" class="hidden">
+        <div class="im-card">
+            <div class="im-head"><span data-i18n="missionsMenu.title"></span> <kbd>M</kbd><button id="mm-close" class="im-close" data-i18n="missionsMenu.close"></button></div>
+            <p class="im-hint" data-i18n="missionsMenu.hint"></p>
+            <div id="mm-list"></div>
+        </div>
+    </div>
+    <div id="screens-menu" class="hidden">
+        <div class="im-card">
+            <div class="im-head"><span data-i18n="screensMenu.title"></span> <kbd>C</kbd><button id="sm-close" class="im-close" data-i18n="screensMenu.close"></button></div>
+            <p class="im-hint" data-i18n="screensMenu.hint"></p>
+            <div id="sm-list"></div>
+        </div>
+    </div>
+    <button id="btn-screens" class="btn" data-i18n-aria="screensMenu.button"><span data-i18n="screensMenu.short"></span> <kbd>C</kbd></button>
+    <button id="btn-sound" class="btn sound-btn"><span class="sound-icon"></span> <span class="sound-text"></span></button>
+    <button id="btn-missions" class="btn" data-i18n-aria="missionsMenu.button"><span data-i18n="missionsMenu.short"></span> <kbd>M</kbd></button>
+
+    <div id="prompt" class="hidden"><kbd>E</kbd> <span id="prompt-text"></span></div>
+
+    <div id="dialogue" class="panel hidden">
+        <div class="speaker"><span id="dlg-name"></span><span id="dlg-role"></span></div>
+        <p id="dlg-text"></p>
+        <div id="dlg-options"></div>
+    </div>
+
+    <div id="toasts"></div>
+
+    <div id="help" class="panel">
+        <b data-i18n="help.title"></b>
+        <div data-i18n-html="help.walk"></div>
+        <div data-i18n-html="help.talk"></div>
+        <div data-i18n-html="help.shift"></div>
+        <div data-i18n-html="help.calls"></div>
+        <div data-i18n-html="help.camera"></div>
+        <div data-i18n-html="help.drag"></div>
+        <div data-i18n-html="help.quality"></div>
+        <div data-i18n-html="help.screens"></div>
+        <div data-i18n-html="help.help"></div>
+    </div>
+
+    <div id="touch" class="hidden">
+        <div id="joy-base"><div id="joy-knob"></div></div>
+        <div id="touch-buttons">
+            <button class="tbtn" id="t-rot-l">⟲</button>
+            <button class="tbtn" id="t-rot-r">⟳</button>
+            <button class="tbtn" id="t-scr" data-i18n-aria="screensMenu.button">C</button>
+            <button class="tbtn" id="t-mis" data-i18n-aria="missionsMenu.button">M</button>
+            <button class="tbtn" id="t-int" data-i18n-aria="interiorsMenu.button">I</button>
+            <button class="tbtn big" id="t-act">E</button>
+            <button class="tbtn" id="t-radio">📻</button>
+            <button class="tbtn sound-btn" id="t-snd"><span class="sound-icon"></span></button>
+        </div>
+    </div>
+</div>
+
+<div id="modal" class="hidden"><div class="modal-card" id="modal-card"></div></div>
+
+<div id="intro">
+    <div class="intro-card">
+        <div class="intro-badge">🚓</div>
+        <h1 data-i18n="login.game"></h1>
+        <h2 data-i18n="login.city"></h2>
+        <p data-i18n="intro.text"></p>
+        <p class="tip" data-i18n-html="intro.tip"></p>
+        <div class="intro-actions">
+            <button id="start" class="btn primary big" data-i18n="intro.start"></button>
+            <select id="intro-lang" class="lang-select" data-i18n-aria="language.label"></select>
+        </div>
+        <div id="loading" data-i18n="intro.loading"></div>
+    </div>
+</div>
+
+<div id="login">
+    <form id="login-form" class="login-card" autocomplete="on">
+        <div class="radio-head">
+            <span class="radio-icon">🔐</span>
+            <span class="radio-title" data-i18n="login.title"></span>
+            <span class="radio-channel" data-i18n="login.channel"></span>
+            <select id="login-lang" class="lang-select" data-i18n-aria="language.label"></select>
+        </div>
+        <div class="login-body">
+            <div class="intro-badge">🚓</div>
+            <h1 data-i18n="login.game"></h1>
+            <h2 data-i18n="login.city"></h2>
+            <p class="login-hint" data-i18n="login.hint"></p>
+            <label for="login-user" data-i18n="login.user"></label>
+            <input id="login-user" name="username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="32">
+            <label for="login-pass" data-i18n="login.pass"></label>
+            <div class="login-passrow">
+                <input id="login-pass" name="password" type="password" autocomplete="current-password" maxlength="64">
+                <button type="button" id="login-eye" class="btn" aria-pressed="false" data-i18n="login.show"></button>
+            </div>
+            <div id="login-msg" role="alert" aria-live="polite"></div>
+            <button id="login-go" type="submit" class="btn primary big" data-i18n="login.enter"></button>
+        </div>
+    </form>
+</div>
+
+</body>
+</html>
